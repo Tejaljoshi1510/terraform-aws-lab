@@ -56,3 +56,15 @@ And underneath everything:
 7. Move EC2 to private subnet
        ↓
 8. Multi-AZ / NAT / production improvements
+
+                         VPC
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+             AZ-1                    AZ-2
+              │                       │
+       ┌──────┴──────┐         ┌──────┴──────┐
+       │             │         │             │
+    Public-A      Private-A  Public-B      Private-B
+       │             │         │             │
+      EC2           RDS       future ALB     RDS

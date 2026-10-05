@@ -9,13 +9,15 @@ resource "aws_security_group" "web" {
   }
 }
 #For the web Security Group, allow incoming TCP traffic from any IPv4 address to port 80.
-resource "aws_vpc_security_group_ingress_rule" "http" {
+#Only resources using the ALB security group can access EC2 on port 80
+resource "aws_vpc_security_group_ingress_rule" "http_from_alb" {
   security_group_id = aws_security_group.web.id
 
-  cidr_ipv4 = "0.0.0.0/0"
-  from_port = 80
+  referenced_security_group_id = var.alb_security_group_id
+
+  from_port   = 80
+  to_port     = 80
   ip_protocol = "tcp"
-  to_port  = 80
 }
 # Egress - All
 resource "aws_vpc_security_group_egress_rule" "all" {

@@ -68,3 +68,19 @@ And underneath everything:
     Public-A      Private-A  Public-B      Private-B
        │             │         │             │
       EC2           RDS       future ALB     RDS
+
+database flow
+The RDS PostgreSQL database is created by Terraform.
+
+The SQL schema is stored separately in:
+
+database/schema.sql
+
+For learning/testing, the schema can be executed using the PostgreSQL `psql` client from the EC2 instance:
+
+Laptop → SSH → EC2 → PostgreSQL connection → RDS
+
+`schema.sql` contains only SQL statements. SSH commands and database connection commands are executed separately.
+
+In a production environment, database schema changes should be managed through a migration tool and CI/CD pipeline rather than manually through SSH.
+

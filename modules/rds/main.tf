@@ -73,3 +73,4 @@ resource "aws_db_instance" "postgres" {
     Name = "terraform-postgres"
   }
 }
+

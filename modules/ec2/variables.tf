@@ -19,7 +19,3 @@ variable "instance_type" {
   default = "t3.micro"
 }
 
-variable "alb_security_group_id" {
-  description = "Security group ID of the ALB"
-  type        = string
-}

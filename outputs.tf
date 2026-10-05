@@ -49,3 +49,7 @@ output "lambda_function_arn" {
 output "lambda_security_group_id" {
   value = module.lambda.security_group_id
 }
+
+output "route53_record_name" {
+  value = module.route53.record_name
+}

@@ -1,18 +1,18 @@
 variable "aws_region" {
   description = "AWS region"
-  type        = string
+  type = string
   default     = "ap-south-1"
 }
 
 variable "vpc_cidr" {
   description = "VPC CIDR"
-  type        = string
+  type = string
   default     = "10.0.0.0/16"
 }
 
 variable "availability_zones" {
   description = "Availability zones"
-  type        = list(string)
+  type = list(string)
   default     = [
     "ap-south-1a",
     "ap-south-1b"
@@ -21,7 +21,7 @@ variable "availability_zones" {
 
 variable "public_subnet_cidrs" {
   description = "Public subnet CIDRs"
-  type        = list(string)
+  type = list(string)
   default     = [
     "10.0.1.0/24",
     "10.0.2.0/24"
@@ -30,7 +30,7 @@ variable "public_subnet_cidrs" {
 
 variable "private_subnet_cidrs" {
   description = "Private subnet CIDRs"
-  type        = list(string)
+  type = list(string)
   default     = [
     "10.0.11.0/24",
     "10.0.12.0/24"
@@ -67,4 +67,14 @@ variable "db_instance_class" {
   description = "RDS instance class" 
   type = string 
   default = "db.t3.micro" 
+}
+
+variable "hosted_zone_id" {
+  description = "Route 53 hosted zone ID"
+  type = string
+}
+
+variable "record_name" {
+  description = "DNS record name"
+  type = string
 }

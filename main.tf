@@ -88,3 +88,29 @@ module "alb" {
 
   target_instance_id = module.ec2.instance_id
 }
+
+#----------
+#allow alb-> EC2 rule
+#------------
+resource "aws_vpc_security_group_ingress_rule" "alb_to_ec2" {
+  security_group_id = module.ec2.security_group_id
+
+  referenced_security_group_id = module.alb.alb_security_group_id
+
+  from_port   = 80
+  to_port     = 80
+  ip_protocol = "tcp"
+}
+
+#-------
+#aws_route53_record
+#----------
+module "route53" {
+  source = "./modules/route53"
+
+  hosted_zone_id = var.hosted_zone_id
+  record_name    = var.record_name
+
+  alb_dns_name = module.alb.alb_dns_name
+  alb_zone_id  = module.alb.alb_zone_id
+}

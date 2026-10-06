@@ -1,69 +1,50 @@
 # AWS Infrastructure with Terraform
 
-## Overview
+## 1. What gets created
 
-This project provisions AWS infrastructure using Terraform custom modules.
+This project creates a small AWS application environment using Terraform custom modules.
 
-The infrastructure includes:
+The main resources are:
 
-* VPC and networking
-* Public and private subnets across multiple Availability Zones
+* VPC with public and private subnets
+* Subnets across multiple Availability Zones
 * Internet Gateway and route tables
-* EC2 instances
-* RDS PostgreSQL
+* NAT Gateway for private subnet outbound access
+* EC2 instance
+* Security Groups
+* PostgreSQL RDS
 * Lambda function connected to RDS
-* Application Load Balancer (ALB)
+* Application Load Balancer
 * Route 53 DNS record
-* Security Groups and IAM roles
+* IAM role and policies for Lambda
 
-The infrastructure is organized using reusable Terraform modules.
+The main idea is to keep the application entry point public through the ALB while keeping the database private.
+
+### Traffic flow
+
+```text
+Internet
+   |
+Route 53
+   |
+ALB - Public Subnets
+   |
+Target Group
+   |
+EC2
+   |
+RDS - Private Subnets
+
+Lambda
+   |
+   +----> RDS
+```
+
+The ALB communicates with EC2 using the EC2 private IP. EC2 does not need a public IP for ALB-to-EC2 communication.
 
 ---
 
-## Architecture
-
-```text
-                         Internet
-                            |
-                            ↓
-                        Route 53
-                            |
-                            ↓
-                     Public ALB :80
-                            |
-                            ↓
-                     Target Group
-                            |
-                            ↓
-                      EC2 :80
-                            |
-                            ↓
-                  RDS PostgreSQL :5432
-                            ↑
-                            |
-                         Lambda
-```
-
-### Network Layout
-
-```text
-VPC: 10.0.0.0/16
-
-├── Public Subnet A
-├── Public Subnet B
-├── Private Subnet A
-└── Private Subnet B
-```
-
-The ALB is deployed across multiple public subnets.
-
-RDS is deployed in private subnets.
-
-Lambda is configured inside the VPC and connects to RDS through PostgreSQL port `5432`.
-
----
-
-## Project Structure
+# 2. Repository Layout
 
 ```text
 terraform-project/
@@ -71,7 +52,10 @@ terraform-project/
 ├── README.md
 │
 ├── env/
+<<<<<<< HEAD
 │   │
+=======
+>>>>>>> 8505718 (terraform.auto.tfvars file)
 │   └── dev/
 │       ├── main.tf
 │       ├── variables.tf
@@ -83,7 +67,6 @@ terraform-project/
 │   └── schema.sql
 │
 └── modules/
-    │
     ├── vpc/
     │   ├── main.tf
     │   ├── variables.tf
@@ -116,98 +99,485 @@ terraform-project/
         └── outputs.tf
 ```
 
+<<<<<<< HEAD
 # Terraform Modules
+=======
+`env/dev` is the root Terraform configuration for the development environment.
 
-## 1. VPC Module
+The `modules` directory contains reusable Terraform modules.
 
-Creates:
+The modules are not executed separately. Terraform is run from `env/dev`, which calls the required modules.
 
-* VPC
-* Public subnets
-* Private subnets
-* Multiple Availability Zones
-* Internet Gateway
-* Public route table
-* Route table associations
+---
 
-Example:
+# 3. Prerequisites
+>>>>>>> 8505718 (terraform.auto.tfvars file)
+
+Before running the project, I need:
+
+* Terraform installed
+* AWS CLI installed
+* AWS credentials configured
+* Required AWS permissions
+* An existing S3 bucket for the Terraform backend
+* A Route 53 hosted zone if the DNS record is being created
+
+The project uses the AWS provider:
 
 ```text
-VPC
-├── Public Subnet A
-├── Public Subnet B
-├── Private Subnet A
-└── Private Subnet B
+hashicorp/aws
+```
+
+The AWS region used for this project is:
+
+```text
+ap-south-1
 ```
 
 ---
 
-## 2. EC2 Module
+# 4. How to run
 
-Creates:
+Terraform commands should be run from the development environment:
+
+```bash
+cd env/dev
+```
+
+Initialize the project:
+
+```bash
+terraform init
+```
+
+Format the Terraform files:
+
+```bash
+terraform fmt -recursive
+```
+
+Validate the configuration:
+
+```bash
+terraform validate
+```
+
+Check what Terraform is going to create:
+
+```bash
+terraform plan
+```
+
+Create the infrastructure:
+
+```bash
+terraform apply
+```
+
+After the apply completes, Terraform displays the configured outputs.
+
+To check the outputs again:
+
+```bash
+terraform output
+```
+
+I should review the `terraform plan` before running `apply`, especially when creating resources such as RDS, NAT Gateway and ALB because they can generate AWS charges.
+
+---
+
+# 5. Outputs
+
+The root module exposes useful information from the child modules.
+
+Some of the outputs are:
+
+```text
+VPC ID
+Public subnet IDs
+Private subnet IDs
+EC2 instance ID
+RDS endpoint
+RDS port
+Lambda function name
+Lambda function ARN
+ALB DNS name
+Route 53 record name
+```
+
+The flow of values is:
+
+```text
+Resource
+   |
+Module output
+   |
+Root module
+   |
+Root output
+```
+
+For example:
+
+```hcl
+module.vpc.vpc_id
+module.vpc.private_subnet_ids
+module.ec2.instance_id
+module.rds.db_endpoint
+module.lambda.lambda_function_arn
+module.alb.alb_dns_name
+```
+
+This allows the modules to communicate through inputs and outputs instead of hardcoding resource IDs.
+
+---
+
+# 6. Destroy instructions
+
+When the development environment is no longer required, the infrastructure can be removed with:
+
+```bash
+cd env/dev
+terraform destroy
+```
+
+Terraform shows the resources that will be deleted before asking for confirmation.
+
+The S3 backend bucket is separate from the resources managed by this project, so `terraform destroy` does not delete the backend bucket.
+
+For this project, destroying the environment is important because resources such as NAT Gateway, ALB, EC2 and RDS can continue to generate charges while they are running.
+
+---
+
+# 7. Backend information
+
+The Terraform backend is configured in:
+
+```text
+env/dev/terraform.tf
+```
+
+The project uses an S3 backend for storing Terraform state.
+
+Example:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket = "my-terraform-state-bucket"
+    key    = "terraform-project/dev/terraform.tfstate"
+    region = "ap-south-1"
+  }
+}
+```
+
+The backend bucket needs to exist before running:
+
+```bash
+terraform init
+```
+
+Since the state is stored remotely, I should not expect a local `terraform.tfstate` file in `env/dev`.
+
+All the modules used by the development environment are managed through the same root Terraform state.
+
+For team usage, remote state is useful because the Terraform state does not need to be shared manually between developers.
+
+---
+
+# 8. Security notes
+
+The application uses separate Security Groups for the different components.
+
+### ALB
+
+The ALB accepts HTTP traffic from the internet:
+
+```text
+Internet → ALB :80
+```
+
+### EC2
+
+EC2 accepts application traffic only from the ALB Security Group:
+
+```text
+ALB-SG → EC2-SG :80
+```
+
+This is better than allowing HTTP directly from the internet to EC2.
+
+### RDS
+
+RDS is not publicly accessible.
+
+Database access is restricted to the required Security Groups:
+
+```text
+EC2-SG → RDS-SG :5432
+
+Lambda-SG → RDS-SG :5432
+```
+
+I prefer Security Group references here instead of allowing the complete private subnet CIDR because the rule is based on the workload rather than the IP range.
+
+### Lambda
+
+Lambda has its own Security Group and is deployed inside the VPC.
+
+The Lambda execution role provides the permissions required for logging and VPC networking.
+
+### Database credentials
+
+Database credentials should not be committed to Git.
+
+For a production implementation, I would use AWS Secrets Manager instead of keeping database passwords directly in Terraform variables or Lambda environment variables.
+
+---
+
+# 9. Cost considerations
+
+Some of the resources in this project can incur AWS charges.
+
+The main ones are:
+
+* EC2
+* RDS
+* NAT Gateway
+* Elastic IP
+* Application Load Balancer
+* Data transfer
+
+The NAT Gateway is especially important to consider for a small development environment because it has an hourly cost and data processing charges.
+
+For development, I should destroy the environment when I am finished:
+
+```bash
+terraform destroy
+```
+
+For production, cost optimization could include:
+
+* Right-sizing EC2 and RDS
+* Savings Plans or Reserved Instances where appropriate
+* Auto Scaling
+* Stopping non-production resources when not required
+* Using VPC endpoints where appropriate instead of routing all AWS service traffic through NAT
+
+---
+
+# 10. Environment and secret handling
+
+Environment-specific configuration is kept under:
+
+```text
+env/dev/
+```
+
+The development values are stored in:
+
+```text
+env/dev/terraform.auto.tfvars
+```
+
+For example, development-specific values can include:
+
+```text
+VPC CIDR
+Availability Zones
+Public subnet CIDRs
+Private subnet CIDRs
+EC2 instance type
+Database name
+Database username
+```
+
+The reusable modules do not contain development-specific values.
+
+This allows the same modules to be reused for other environments later.
+
+For example:
+
+```text
+env/
+├── dev/
+├── staging/
+└── prod/
+```
+
+All of them can use the same:
+
+```text
+modules/
+```
+
+Sensitive values such as database passwords should not be committed to Git.
+
+Also, `sensitive = true` only prevents Terraform from displaying the value normally in CLI output. The value can still exist in Terraform state, so the remote state must also be protected.
+
+---
+
+# Terraform Modules
+
+## VPC
+
+The VPC module creates the networking required by the application.
+
+It includes:
+
+* VPC
+* Public subnets
+* Private subnets
+* Availability Zones
+* Internet Gateway
+* Route tables
+* Route associations
+* NAT Gateway where required
+
+The module provides outputs such as:
+
+```text
+vpc_id
+public_subnet_ids
+private_subnet_ids
+```
+
+These values are passed to the other modules.
+
+---
+
+## EC2
+
+The EC2 module creates:
 
 * EC2 instance
 * EC2 Security Group
 
-The EC2 instance is deployed inside a subnet.
+The application instance is associated with the required subnet.
 
-The Security Group controls inbound and outbound traffic.
-
-In the final architecture, EC2 receives HTTP traffic only from the ALB Security Group.
+In the final architecture, the ALB is the entry point to the application:
 
 ```text
 ALB-SG
    |
-   | HTTP :80
+   | TCP 80
    ↓
 EC2-SG
+```
+
+---
+
+## RDS
+
+The RDS module creates:
+
+* PostgreSQL RDS instance
+* DB subnet group
+* RDS Security Group
+
+RDS is placed in private subnets and is configured as:
+
+```text
+publicly_accessible = false
+```
+
+The database listens on:
+
+```text
+5432
+```
+
+Only the required application Security Groups are allowed to connect.
+
+---
+
+## Lambda
+
+The Lambda module creates:
+
+* Lambda function
+* IAM execution role
+* IAM policy attachments
+* Lambda Security Group
+* VPC configuration
+
+The Lambda function connects to PostgreSQL:
+
+```text
+Lambda
+   |
+   | TCP 5432
+   ↓
+RDS
+```
+
+The Lambda function contains a query against the application database.
+
+The PostgreSQL `psycopg2` dependency is included in the Lambda deployment package.
+
+---
+
+## ALB
+
+The ALB module creates:
+
+* Internet-facing Application Load Balancer
+* ALB Security Group
+* Target Group
+* Listener
+* Health check
+* EC2 target registration
+
+Traffic flows as:
+
+```text
+Internet
+   |
+   ↓
+ALB
+   |
+   ↓
+Target Group
    |
    ↓
 EC2
 ```
 
+The ALB checks the health of the EC2 target before sending traffic.
+
 ---
 
-## 3. RDS Module
+## Route 53
 
-Creates:
+The Route 53 module creates a DNS record pointing to the ALB.
 
-* RDS PostgreSQL instance
-* RDS subnet group
-* RDS Security Group
-
-RDS is deployed in private subnets.
-
-PostgreSQL traffic is allowed only from trusted Security Groups.
+The flow is:
 
 ```text
-EC2-SG ────────┐
-               ├──→ RDS :5432
-Lambda-SG ─────┘
+Application DNS
+      |
+      ↓
+Route 53
+      |
+      ↓
+ALB
 ```
 
-RDS is not publicly accessible.
+An AWS Alias record is used for the ALB.
 
 ---
 
-## 4. Database Schema
+# Database Schema
 
-Terraform creates the RDS infrastructure and initial database.
-
-The database schema is stored separately:
+The SQL schema is stored separately from the Terraform infrastructure:
 
 ```text
 database/schema.sql
 ```
 
-The SQL file contains database objects such as:
+The file contains SQL for creating the application database objects.
 
-* Schemas
-* Tables
-* Constraints
-* Relationships
-
-Example:
+For example:
 
 ```text
 application
@@ -216,7 +586,11 @@ application
 └── orders
 ```
 
-For learning/testing, the schema can be executed using the PostgreSQL `psql` client from an EC2 instance:
+Terraform creates the RDS infrastructure and initial database.
+
+The SQL file is responsible for the application-level schema.
+
+For learning and testing, the schema can be executed from an EC2 instance using the PostgreSQL `psql` client:
 
 ```text
 Laptop
@@ -230,248 +604,103 @@ EC2
 RDS
 ```
 
-The `schema.sql` file contains only SQL statements.
-
-In a production environment, database schema changes should be managed through a database migration tool and CI/CD pipeline rather than manually through SSH.
+In a production environment, I would use a database migration process through CI/CD instead of manually connecting through SSH.
 
 ---
 
-# 5. Lambda Module
+# Important Terraform Concepts Used
 
-Creates:
+This project covers the following Terraform concepts:
 
-* AWS Lambda function
-* IAM execution role
-* Lambda Security Group
-* VPC configuration
-
-The Lambda function uses Python and connects to PostgreSQL.
-
-```text
-Lambda
-   |
-   | PostgreSQL :5432
-   ↓
-RDS
-```
-
-The Lambda function queries the:
-
-```text
-application.users
-```
-
-table.
-
-The PostgreSQL `psycopg2` driver is packaged with the Lambda deployment package.
-
-For production, database credentials should be stored in **AWS Secrets Manager** instead of directly in Lambda environment variables.
-
----
-
-# 6. Application Load Balancer
-
-Creates:
-
-* Internet-facing ALB
-* ALB Security Group
-* Target Group
-* Health Check
-* Listener
-* EC2 target registration
-
-Traffic flow:
-
-```text
-Internet
-   ↓
-ALB :80
-   ↓
-Target Group
-   ↓
-EC2 :80
-```
-
-The ALB performs health checks on the EC2 instance and sends traffic only to healthy targets.
-
----
-
-# 7. Route 53
-
-Creates a Route 53 DNS record pointing to the ALB.
-
-Example:
-
-```text
-app.example.com
-       ↓
-    Route 53
-       ↓
-      ALB
-       ↓
-      EC2
-```
-
-An AWS Alias record is used to point the Route 53 record to the ALB.
-
----
-
-# Security
-
-The project follows basic AWS security practices:
-
-* RDS is private.
-* RDS port `5432` is allowed only from trusted Security Groups.
-* EC2 receives HTTP traffic from the ALB Security Group.
-* ALB accepts HTTP traffic from the internet.
-* Lambda uses its own Security Group.
-* IAM roles are used for Lambda permissions.
-* Database credentials should not be committed to Git.
-* Production deployments should use AWS Secrets Manager for database credentials.
-
----
-
-# Terraform Variables and Outputs
-
-The root module defines project-level variables.
-
-Example:
-
-```text
-Root variables
-      ↓
-Module input variables
-      ↓
-Resources
-      ↓
-Module outputs
-      ↓
-Root outputs
-```
-
-Example:
-
-```hcl
-module.vpc.vpc_id
-module.vpc.private_subnet_ids
-module.ec2.instance_id
-module.rds.db_endpoint
-module.lambda.lambda_function_arn
-module.alb.alb_dns_name
-```
-
-This allows modules to remain reusable and loosely coupled.
-
----
-
-# Terraform Workflow
-
-Initialize Terraform:
-
-```bash
-terraform init
-```
-
-Format the configuration:
-
-```bash
-terraform fmt -recursive
-```
-
-Validate the configuration:
-
-```bash
-terraform validate
-```
-
-Review the execution plan:
-
-```bash
-terraform plan
-```
-
-Create the infrastructure:
-
-```bash
-terraform apply
-```
-
-View outputs:
-
-```bash
-terraform output
-```
-
-Destroy the infrastructure when no longer required:
-
-```bash
-terraform destroy
-```
-
----
-
-# Important Terraform Concepts Demonstrated
-
-This project demonstrates:
-
-* Custom Terraform modules
+* Custom modules
+* Module inputs
+* Module outputs
 * Variables
 * Variable types
 * Lists
-* Outputs
-* Module output referencing
-* Resource dependencies
-* `depends_on`
 * `count`
-* Multi-AZ infrastructure
+* Resource dependencies
+* Implicit dependencies
+* `depends_on`
+* Data sources
 * Security Group references
-* Reusable module design
-* Terraform plan and apply workflow
+* Multi-AZ resources
+* Remote Terraform state
+* Environment-specific configuration
+* Terraform plan/apply workflow
+
+One important design principle used in this project is to let Terraform infer dependencies through resource references whenever possible.
+
+`depends_on` is used only when Terraform cannot automatically understand a dependency.
 
 ---
 
-# Implementation Order
+# Deployment Order
 
-The infrastructure is implemented in the following order:
+The infrastructure is logically built around the following dependencies:
 
 ```text
-1. VPC
-      ↓
-2. Public/Private Subnets
-      ↓
-3. Internet Gateway + Routes
-      ↓
-4. EC2
-      ↓
-5. RDS PostgreSQL
-      ↓
-6. Database Schema
-      ↓
-7. Lambda → RDS
-      ↓
-8. ALB → EC2
-      ↓
-9. Route 53 → ALB
-      ↓
-10. Validation and Testing
+VPC
+ |
+ +---- Public/Private Subnets
+ |
+ +---- Internet Gateway / Routes
+ |
+ +---- EC2
+ |
+ +---- RDS
+ |
+ +---- Lambda
+ |
+ +---- ALB
+ |
+ +---- Route 53
 ```
+
+Terraform determines the actual creation order from the dependency graph.
+
+For example:
+
+```text
+VPC
+ ↓
+Private Subnets
+ ↓
+RDS
+
+VPC
+ ↓
+Public Subnets
+ ↓
+ALB
+ ↓
+EC2 Target
+```
+
+I don't manually create each resource in this order. Terraform builds the dependency graph and handles the ordering.
 
 ---
 
 # Production Improvements
 
-For a production deployment, the architecture can be further improved by:
+This project is mainly designed to demonstrate the required AWS and Terraform concepts.
 
-* Moving EC2 completely into private subnets
-* Using NAT Gateway or VPC endpoints where required
-* Using AWS Secrets Manager for database credentials
+For a production setup, I would improve it further by:
+
+* Keeping EC2 instances in private subnets
+* Using an Auto Scaling Group
+* Running EC2 across multiple Availability Zones
 * Using RDS Multi-AZ
-* Using multiple EC2 instances/Auto Scaling
-* Using HTTPS with ACM certificates
-* Using HTTPS listener on the ALB
-* Using database migration tooling
-* Using remote Terraform state with locking
-* Running Terraform through CI/CD
-* Adding CloudWatch monitoring and alarms
+* Using HTTPS with ACM
 * Adding WAF to the ALB
-* Restricting IAM permissions using least privilege
+* Using Secrets Manager for database credentials
+* Using database migration tooling
+* Using CloudWatch monitoring and alarms
+* Applying least-privilege IAM policies
+* Using VPC endpoints where appropriate
+* Using CI/CD for Terraform
+* Adding Terraform security and validation checks
+* Using separate state/configuration for each environment
+* Adding appropriate state locking and access controls
+
+The current project provides the basic foundation while keeping the Terraform configuration modular and reusable.

@@ -69,10 +69,15 @@ Lambda is configured inside the VPC and connects to RDS through PostgreSQL port 
 terraform-project/
 │
 ├── README.md
-├── main.tf
-├── variables.tf
-├── outputs.tf
-├── terraform.tfvars
+│
+├── env/
+│   │
+│   └── dev/
+│       ├── main.tf
+│       ├── variables.tf
+│       ├── outputs.tf
+│       ├── terraform.tf
+│       └── terraform.auto.tfvars
 │
 ├── database/
 │   └── schema.sql
@@ -110,8 +115,6 @@ terraform-project/
         ├── variables.tf
         └── outputs.tf
 ```
-
----
 
 # Terraform Modules
 

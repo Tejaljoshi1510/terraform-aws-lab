@@ -95,23 +95,87 @@ I would identify which instances are safe to stop before applying the schedule. 
 It is also important to remember that stopping an EC2 instance does not remove all related costs. EBS volumes and other associated resources can continue to incur charges.
 
 ---
+## 6. On-Demand Instances
+On-Demand Instances allow us to launch EC2 instances and pay for the compute capacity we use without making any long-term commitment. This option provides flexibility because we can increase or decrease capacity based on application requirements.
 
-## 6. Comparing the Options
+On-Demand pricing is generally suitable for workloads with unpredictable usage, short-term requirements, or applications where future compute needs are not yet clear.
 
-The cost optimization method depends on the workload.
+For production environments, I would use On-Demand Instances when flexibility is more important than receiving a long-term pricing discount.
 
-For an oversized production instance, I would first look at **right-sizing**.
+### Production use case
+Suppose a company is launching a new application, and its traffic pattern is not yet predictable. The company does not know how much compute capacity will be required over the next several months.
 
-For development instances that are not required outside working hours, I would use **automatic start/stop scheduling**.
+In this situation, I would initially use On-Demand Instances rather than committing to a Savings Plan or Reserved Instance before understanding the actual usage pattern.
 
-For stable production workloads that run continuously, I would compare **Savings Plans and Reserved Instances**.
+After monitoring the application for a few months, I would analyze its baseline compute requirements and evaluate whether Savings Plans or Reserved Instances could reduce the cost.
 
-For batch processing or other workloads that can tolerate interruption, I would consider **Spot Instances**.
+The main advantage of On-Demand Instances is flexibility. They are useful when workloads are temporary, unpredictable, or still being evaluated, although their rates are generally higher than discounted commitment-based options.
 
-I would also monitor the environment after applying the optimization to make sure the change has reduced cost without affecting application performance or availability.
+## 7. Dedicated Instances and Dedicated Hosts
+Dedicated Instances and Dedicated Hosts provide EC2 capacity on hardware dedicated to a single customer. They are useful when an organization has specific isolation, compliance, licensing, or regulatory requirements.
+
+Although both options provide dedicated hardware, they serve different purposes.
+
+### Dedicated Instances
+Dedicated Instances run on hardware dedicated to a single AWS customer. Other AWS customers do not share that hardware, but the customer has less visibility and control over the physical server than with a Dedicated Host.
+
+### Production use case
+
+Suppose a company runs a production application that requires instance-level hardware isolation to meet internal security or compliance requirements.
+
+In this case, I would evaluate Dedicated Instances to provide hardware isolation while continuing to use EC2's standard instance management capabilities.
+
+I would compare the additional cost with the application's security and compliance requirements before selecting this option.
+
+### Dedicated Hosts
+Dedicated Hosts provide a physical server dedicated to a single customer, with visibility into the host's physical resources and control over instance placement.
+
+They are particularly useful when an organization has software licensing requirements tied to physical servers, sockets, or cores, or when it needs greater control over host placement for compliance purposes.
+
+### Production use case
+
+Suppose a company runs a production database application that uses third-party software licensed based on physical CPU sockets or cores. The company needs visibility into the underlying physical server to meet its licensing requirements.
+
+In this case, I would evaluate Dedicated Hosts because they provide host-level visibility and can help the company manage eligible software licensing requirements.
+
+However, I would compare the cost of Dedicated Hosts with standard EC2 pricing and verify the software vendor's licensing terms before making a decision.
+
+The key difference: Dedicated Instances provide hardware isolation, while Dedicated Hosts provide hardware isolation along with visibility and control at the physical host level. Neither option should be selected solely to reduce cost; they are primarily used to satisfy isolation, compliance, or licensing requirements.
+
+## 8. Comparing the Options
+The appropriate EC2 cost optimization method depends on workload characteristics, availability requirements, and business needs.
+
+Option                                                  Best suited for
+
+Right-sizing                      Instances with more CPU, memory, or capacity than required
+
+Savings Plans                     Predictable compute usage with a long-term commitment
+
+Reserved Instances                Stable workloads that benefit from reservation-based pricing
+
+Spot Instances                    Fault-tolerant workloads that can handle interruptions
+
+Auto-stop scheduling              Development and testing instances that are not needed 24/7
+
+On-Demand Instances               Unpredictable, temporary, or newly launched workloads
+
+Dedicated Instances               Workloads requiring dedicated hardware isolation
+
+Dedicated Hosts                   Workloads requiring host-level control or eligible license management
 
 ## Conclusion
+My approach to EC2 cost optimization would be to first understand workload requirements and utilization, then remove unnecessary capacity and select the most appropriate pricing model.
 
-The main approach I would follow for EC2 cost optimization is to first understand the actual workload and utilization. I would then remove unnecessary capacity, right-size instances, automate non-production environments and select the appropriate pricing model for stable or interruptible workloads.
+For oversized instances, I would start with right-sizing.
 
-For production environments, cost reduction should always be balanced with availability, performance and operational requirements. The cheapest option is not always the correct option; the right option depends on the workload and its business requirements.
+For predictable production workloads, I would compare Savings Plans and Reserved Instances.
+
+For interruptible batch workloads, I would consider Spot Instances.
+
+For development environments, I would automate start/stop scheduling.
+
+For unpredictable or short-term workloads, I would use On-Demand Instances.
+
+For workloads with specific hardware isolation, compliance, or licensing requirements, I would evaluate Dedicated Instances or Dedicated Hosts.
+
+Ultimately, EC2 cost optimization is not just about choosing the lowest hourly rate. It is about balancing cost, performance, availability, flexibility, and compliance while selecting the right option for each workload.
